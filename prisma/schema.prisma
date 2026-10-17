@@ -1,0 +1,85 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// 1. Kiracı (Şirket) Tablosu - Multi-Tenant Temeli
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String   // Şirket Adı
+  plan      String   @default("free") // "free", "pro", "enterprise"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users         User[]
+  knowledgeBase KnowledgeBase[]
+  rfpRequests   RfpRequest[]
+  bidResponses  BidResponse[]
+
+  @@map("tenants")
+}
+
+// 2. Kullanıcılar Tablosu
+model User {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id") // Zorunlu Tenant İzolasyonu
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("member") // "manager" veya "member"
+  createdAt DateTime @default(now())
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  rfpRequests RfpRequest[]
+
+  @@map("users")
+}
+
+// 3. Şirket Bilgi Bankası (Hafızası)
+model KnowledgeBase {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id") // Zorunlu Tenant İzolasyonu
+  title     String   // Örn: "Geçmiş İhale Fiyat Katalogları"
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("knowledge_base")
+}
+
+// 4. İhale / Şartname Talepleri
+model RfpRequest {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id") // Zorunlu Tenant İzolasyonu
+  userId      String   @map("user_id")
+  title       String   // İhale Adı
+  rawDocument String   @db.Text // Yüklenen ihale şartname metni
+  status      String   @default("pending") // "pending", "processing", "completed"
+  createdAt   DateTime @default(now())
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bidResponses BidResponse[]
+
+  @@map("rfp_requests")
+}
+
+// 5. AI Tarafından Üretilen Teklif Yanıtları
+model BidResponse {
+  id            String   @id @default(uuid())
+  tenantId      String   @map("tenant_id") // Zorunlu Tenant İzolasyonu
+  rfpRequestId  String   @map("rfp_request_id")
+  generatedText String   @db.Text // AI teklif taslağı
+  riskScore     Int      @default(0) // 0-100 arası risk skoru
+  createdAt     DateTime @default(now())
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  rfpRequest RfpRequest @relation(fields: [rfpRequestId], references: [id], onDelete: Cascade)
+
+  @@map("bid_responses")
+}
