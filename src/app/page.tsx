@@ -38,7 +38,7 @@ export default function Home() {
               const json = JSON.parse(line.replace('data: ', ''));
               setStreamData((prev) => prev + json.text);
             } catch (err) {
-              // JSON parse aksaklıklarını pas geç
+              // JSON parse pas geç
             }
           }
         }
@@ -61,7 +61,6 @@ export default function Home() {
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Sol Kolon: İhale Giriş Formu */}
           <form onSubmit={handleGenerate} className="bg-slate-800 p-6 rounded-xl border border-slate-700 space-y-4">
             <h2 className="text-xl font-semibold text-slate-200">İhale & Şartname Bilgisi</h2>
             <div>
@@ -95,7 +94,6 @@ export default function Home() {
             </button>
           </form>
 
-          {/* Sağ Kolon: Canlı SSE Yanıt Ekranı */}
           <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col">
             <h2 className="text-xl font-semibold text-slate-200 mb-4">Canlı AI Yanıtı (SSE)</h2>
             <div className="flex-1 bg-slate-950 rounded-lg p-4 font-mono text-sm text-slate-300 overflow-y-auto whitespace-pre-wrap border border-slate-800">
