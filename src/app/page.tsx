@@ -20,31 +20,43 @@ export default function Home() {
         body: JSON.stringify({ rfpTitle, requirements }),
       });
 
+      if (!response.ok) {
+        setStreamData('Hata: Yetkisiz erişim veya sunucu hatası.');
+        setLoading(false);
+        return;
+      }
+
       if (!response.body) return;
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
+      let buffer = '';
 
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n\n');
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || ''; // Tamamlanmamış parçayı buffer'da tut
 
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith('data: ')) {
             try {
-              const json = JSON.parse(line.replace('data: ', ''));
-              setStreamData((prev) => prev + json.text);
+              const json = JSON.parse(trimmed.replace('data: ', ''));
+              if (json.text) {
+                setStreamData((prev) => prev + json.text);
+              }
             } catch (err) {
-              // JSON parse pas geç
+              // Hatalı/yarım JSON paketlerini yut, sayfanın çökmesini engelle
             }
           }
         }
       }
     } catch (error) {
       console.error('SSE hatasi:', error);
+      setStreamData('Bağlantı hatası oluştu.');
     } finally {
       setLoading(false);
     }
@@ -96,7 +108,7 @@ export default function Home() {
 
           <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col">
             <h2 className="text-xl font-semibold text-slate-200 mb-4">Canlı AI Yanıtı (SSE)</h2>
-            <div className="flex-1 bg-slate-950 rounded-lg p-4 font-mono text-sm text-slate-300 overflow-y-auto whitespace-pre-wrap border border-slate-800">
+            <div className="flex-1 bg-slate-950 rounded-lg p-4 font-mono text-sm text-slate-300 overflow-y-auto whitespace-pre-wrap border border-slate-800 min-h-[250px]">
               {streamData || <span className="text-slate-600">Teklif oluşturmak için formu doldurun...</span>}
             </div>
           </div>

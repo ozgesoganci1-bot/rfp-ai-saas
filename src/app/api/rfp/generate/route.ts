@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server';
-import { getActiveTenantSession } from '@/lib/auth';
+import { getActiveTenantSession } from '../../../../lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Tenant ve Yetki Kontrolü (Ders 3 & 4 İlkesi)
+    // 1. Tenant ve Yetki Kontrolü
     const session = await getActiveTenantSession();
     if (!session || !session.tenant.id) {
       return new Response(JSON.stringify({ error: 'Yetkisiz Erişim' }), {
